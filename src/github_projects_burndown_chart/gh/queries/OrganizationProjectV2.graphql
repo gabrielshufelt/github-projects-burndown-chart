@@ -1,4 +1,4 @@
-query OrganizationProject($organization_name: String!, $project_number: Int!, $labels_per_issue_count: Int!, $cursor: String) {
+query OrganizationProject($organization_name: String!, $project_number: Int!, $labels_per_issue_count: Int!, $cursor: String, $iteration_field_name: String = "Iteration") {
   organization(login: $organization_name) {
     projectV2(number: $project_number) {
       title
@@ -6,6 +6,18 @@ query OrganizationProject($organization_name: String!, $project_number: Int!, $l
         ... on ProjectV2SingleSelectField {
           options {
             name
+          }
+        }
+      }
+      iterationField: field(name: $iteration_field_name) {
+        ... on ProjectV2IterationField {
+          configuration {
+            iterations {
+              id
+              title
+              startDate
+              duration
+            }
           }
         }
       }
@@ -19,6 +31,11 @@ query OrganizationProject($organization_name: String!, $project_number: Int!, $l
           fieldValueByName(name: "Status") {
             ... on ProjectV2ItemFieldSingleSelectValue {
               name
+            }
+          }
+          iterationValue: fieldValueByName(name: $iteration_field_name) {
+            ... on ProjectV2ItemFieldIterationValue {
+              iterationId
             }
           }
           content {

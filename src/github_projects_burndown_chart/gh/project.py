@@ -1,7 +1,25 @@
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from dateutil.parser import isoparse
 
 from config import config
+
+
+def get_current_iteration_id(iteration_field):
+    """Find the current iteration based on today's date."""
+    if not iteration_field:
+        return None
+
+    configuration = iteration_field.get('configuration', {})
+    iterations = configuration.get('iterations', [])
+    today = date.today()
+
+    for iteration in iterations:
+        start_date = datetime.strptime(iteration['startDate'], '%Y-%m-%d').date()
+        end_date = start_date + timedelta(days=iteration['duration'])
+        if start_date <= today <= end_date:
+            return iteration['id']
+
+    return None
 
 
 class Project:
@@ -42,7 +60,17 @@ class ProjectV2(Project):
         for option in project_data['field']['options']:
             column_dict[option['name']] = []
 
+        # Get current iteration ID for filtering
+        iteration_field = project_data.get('iterationField')
+        current_iteration_id = get_current_iteration_id(iteration_field)
+
         for item_data in project_data['items']['nodes']:
+            # Filter by current iteration if iteration field exists
+            if current_iteration_id is not None:
+                item_iteration_id = (item_data.get('iterationValue') or {}).get('iterationId')
+                if item_iteration_id != current_iteration_id:
+                    continue
+
             status = (item_data.get('fieldValueByName') or {}).get('name')
             column_dict[status].append(Card(item_data))
 
