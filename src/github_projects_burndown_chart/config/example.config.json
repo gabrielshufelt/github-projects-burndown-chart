@@ -10,8 +10,6 @@
         "labels_per_issue_count": 5
       },
       "settings": {
-        "sprint_start_date": "2021-10-07",
-        "sprint_end_date": "2021-10-21",
         "points_label": "Points: "
       }
     }
@@ -26,8 +24,6 @@
         "labels_per_issue_count": 5
       },
       "settings": {
-        "sprint_start_date": "2021-02-28",
-        "sprint_end_date": "2021-10-21",
         "points_label": null
       }
     }

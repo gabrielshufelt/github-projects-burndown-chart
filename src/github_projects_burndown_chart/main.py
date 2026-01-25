@@ -4,10 +4,11 @@ from chart.burndown import *
 from config import config
 from discord import webhook
 from gh.api_wrapper import get_organization_project, get_repository_project, get_project_v2
-from gh.project import Project
+from gh.project import Project, ProjectV2
 from util import calculators, colors
 from util.stats import *
 from util.calculators import *
+from util.dates import parse_to_utc
 
 
 def parse_cli_args():
@@ -34,14 +35,25 @@ def download_project_data(project_type: str, project_version: int) -> Project:
         return get_organization_project()
 
 
-def prepare_chart_data(stats: ProjectStats):
+def get_sprint_dates(project: Project):
+    """Get sprint start and end dates from the project's iteration."""
+    if isinstance(project, ProjectV2) and project.sprint_start_date and project.sprint_end_date:
+        sprint_start = parse_to_utc(project.sprint_start_date.strftime('%Y-%m-%d'))
+        sprint_end = parse_to_utc(project.sprint_end_date.strftime('%Y-%m-%d'))
+        return sprint_start, sprint_end
+    else:
+        raise ValueError("No active iteration found. Ensure your GitHub Project has an Iteration field with a current sprint.")
+
+
+def prepare_chart_data(stats: ProjectStats, sprint_start, sprint_end):
     color = colors()
+    chart_end = config.utc_chart_end() or sprint_end
     data = BurndownChartData(
         sprint_name=stats.project.name,
-        utc_chart_start=config.utc_sprint_start(),
-        utc_chart_end=config.utc_chart_end() or config.utc_sprint_end(),
-        utc_sprint_start=config.utc_sprint_start(),
-        utc_sprint_end=config.utc_sprint_end(),
+        utc_chart_start=sprint_start,
+        utc_chart_end=chart_end,
+        utc_sprint_start=sprint_start,
+        utc_sprint_end=sprint_end,
         total_points=stats.total_points,
         series=[
             BurndownChartDataSeries(
@@ -60,10 +72,11 @@ if __name__ == '__main__':
     args = parse_cli_args()
     config.set_project(args.project_type, args.project_name)
     project = download_project_data(args.project_type, config['settings'].get('version', 1))
-    stats = ProjectStats(project, config.utc_sprint_start(),
-                         config.utc_chart_end() or config.utc_sprint_end())
+    sprint_start, sprint_end = get_sprint_dates(project)
+    chart_end = config.utc_chart_end() or sprint_end
+    stats = ProjectStats(project, sprint_start, chart_end)
     # Generate the burndown chart
-    burndown_chart = BurndownChart(prepare_chart_data(stats))
+    burndown_chart = BurndownChart(prepare_chart_data(stats, sprint_start, sprint_end))
     if args.discord:
         chart_path = "./tmp/chart.png"
         burndown_chart.generate_chart(chart_path)

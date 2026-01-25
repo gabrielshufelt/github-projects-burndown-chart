@@ -42,12 +42,6 @@ class Config:
         self.project_type = project_type
         self.project_name = project_name
 
-    def utc_sprint_start(self) -> datetime:
-        return self.__get_date('sprint_start_date')
-
-    def utc_sprint_end(self) -> datetime:
-        return self.__get_date('sprint_end_date')
-
     def utc_chart_end(self) -> datetime:
         return self.__get_date('chart_end_date')
 

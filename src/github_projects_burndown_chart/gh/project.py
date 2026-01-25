@@ -4,10 +4,13 @@ from dateutil.parser import isoparse
 from config import config
 
 
-def get_current_iteration_id(iteration_field):
-    """Find the current iteration based on today's date."""
+def get_current_iteration(iteration_field):
+    """Find the current iteration based on today's date.
+
+    Returns a tuple of (iteration_id, start_date, end_date) or (None, None, None) if not found.
+    """
     if not iteration_field:
-        return None
+        return None, None, None
 
     configuration = iteration_field.get('configuration', {})
     iterations = configuration.get('iterations', [])
@@ -17,9 +20,9 @@ def get_current_iteration_id(iteration_field):
         start_date = datetime.strptime(iteration['startDate'], '%Y-%m-%d').date()
         end_date = start_date + timedelta(days=iteration['duration'])
         if start_date <= today <= end_date:
-            return iteration['id']
+            return iteration['id'], start_date, end_date
 
-    return None
+    return None, None, None
 
 
 class Project:
@@ -53,6 +56,8 @@ class ProjectV1(Project):
 class ProjectV2(Project):
     def __init__(self, project_data):
         self.name = project_data['title']
+        self.sprint_start_date: date = None
+        self.sprint_end_date: date = None
         self.columns = self.__parse_columns(project_data)
 
     def __parse_columns(self, project_data):
@@ -60,9 +65,13 @@ class ProjectV2(Project):
         for option in project_data['field']['options']:
             column_dict[option['name']] = []
 
-        # Get current iteration ID for filtering
+        # Get current iteration info for filtering and date tracking
         iteration_field = project_data.get('iterationField')
-        current_iteration_id = get_current_iteration_id(iteration_field)
+        current_iteration_id, start_date, end_date = get_current_iteration(iteration_field)
+
+        # Store the iteration dates for use in chart generation
+        self.sprint_start_date = start_date
+        self.sprint_end_date = end_date
 
         for item_data in project_data['items']['nodes']:
             # Filter by current iteration if iteration field exists
@@ -88,11 +97,18 @@ class Column:
 
 class Card:
     def __init__(self, card_data):
-        card_data = card_data['content'] if card_data['content'] else card_data
+        # Extract estimate from item level (for ProjectV2) before getting content
+        estimate_value = (card_data.get('estimateValue') or {}).get('number')
+
+        # Get content (Issue/PR data) for dates and labels
+        content = card_data.get('content')
+        if content:
+            card_data = content
+
         self.created: datetime = self.__parse_createdAt(card_data)
         self.assigned: datetime = self.__parse_assignedAt(card_data)
         self.closed: datetime = self.__parse_closedAt(card_data)
-        self.points = self.__parse_points(card_data)
+        self.points = self.__parse_points(card_data, estimate_value)
 
     def __parse_assignedAt(self, card_data) -> datetime:
         assignedAt = None
@@ -113,11 +129,17 @@ class Card:
             closedAt = isoparse(card_data['closedAt'])
         return closedAt
 
-    def __parse_points(self, card_data) -> int:
+    def __parse_points(self, card_data, estimate_value=None) -> int:
         card_points = 0
         points_label = config['settings']['points_label']
+
+        # If no points_label configured, count issues (1 point each)
         if not points_label:
             card_points = 1
+        # If estimate field value exists (from ProjectV2 number field), use it
+        elif estimate_value is not None:
+            card_points = int(estimate_value)
+        # Otherwise try to parse from labels
         else:
             card_labels = card_data.get('labels', {"nodes": []})['nodes']
             card_points = sum([int(label['name'][len(points_label):])

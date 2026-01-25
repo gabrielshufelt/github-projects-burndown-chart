@@ -10,8 +10,6 @@
         "labels_per_issue_count": 5
       },
       "settings": {
-        "sprint_start_date": "REQUIRED",
-        "sprint_end_date": "REQUIRED",
         "points_label": null
       }
     }
@@ -25,8 +23,6 @@
         "labels_per_issue_count": 5
       },
       "settings": {
-        "sprint_start_date": "REQUIRED",
-        "sprint_end_date": "REQUIRED",
         "points_label": null
       }
     }
@@ -41,8 +37,6 @@
         "labels_per_issue_count": 5
       },
       "settings": {
-        "sprint_start_date": "REQUIRED",
-        "sprint_end_date": "REQUIRED",
         "points_label": null
       }
     }
@@ -55,8 +49,6 @@
         "labels_per_issue_count": 5
       },
       "settings": {
-        "sprint_start_date": "REQUIRED",
-        "sprint_end_date": "REQUIRED",
         "points_label": null
       }
     }
