@@ -1,4 +1,4 @@
-query RepositoryProject($repo_owner: String!, $repo_name: String!, $project_number: Int!, $labels_per_issue_count: Int!, $cursor: String, $iteration_field_name: String = "Iteration") {
+query RepositoryProject($repo_owner: String!, $repo_name: String!, $project_number: Int!, $labels_per_issue_count: Int!, $cursor: String, $iteration_field_name: String = "Iteration", $estimate_field_name: String = "Estimate") {
   repository(owner: $repo_owner, name: $repo_name) {
     projectV2(number: $project_number) {
       title
@@ -36,6 +36,11 @@ query RepositoryProject($repo_owner: String!, $repo_name: String!, $project_numb
           iterationValue: fieldValueByName(name: $iteration_field_name) {
             ... on ProjectV2ItemFieldIterationValue {
               iterationId
+            }
+          }
+          estimateValue: fieldValueByName(name: $estimate_field_name) {
+            ... on ProjectV2ItemFieldNumberValue {
+              number
             }
           }
           content {
