@@ -7,10 +7,10 @@ from config import config
 def get_current_iteration(iteration_field):
     """Find the current iteration based on today's date.
 
-    Returns a tuple of (iteration_id, start_date, end_date) or (None, None, None) if not found.
+    Returns a tuple of (iteration_id, title, start_date, end_date) or (None, None, None, None) if not found.
     """
     if not iteration_field:
-        return None, None, None
+        return None, None, None, None
 
     configuration = iteration_field.get('configuration', {})
     iterations = configuration.get('iterations', [])
@@ -20,9 +20,9 @@ def get_current_iteration(iteration_field):
         start_date = datetime.strptime(iteration['startDate'], '%Y-%m-%d').date()
         end_date = start_date + timedelta(days=iteration['duration'])
         if start_date <= today <= end_date:
-            return iteration['id'], start_date, end_date
+            return iteration['id'], iteration.get('title'), start_date, end_date
 
-    return None, None, None
+    return None, None, None, None
 
 
 class Project:
@@ -56,6 +56,7 @@ class ProjectV1(Project):
 class ProjectV2(Project):
     def __init__(self, project_data):
         self.name = project_data['title']
+        self.sprint_name: str = None
         self.sprint_start_date: date = None
         self.sprint_end_date: date = None
         self.columns = self.__parse_columns(project_data)
@@ -67,9 +68,10 @@ class ProjectV2(Project):
 
         # Get current iteration info for filtering and date tracking
         iteration_field = project_data.get('iterationField')
-        current_iteration_id, start_date, end_date = get_current_iteration(iteration_field)
+        current_iteration_id, iteration_title, start_date, end_date = get_current_iteration(iteration_field)
 
-        # Store the iteration dates for use in chart generation
+        # Store the iteration info for use in chart generation
+        self.sprint_name = iteration_title
         self.sprint_start_date = start_date
         self.sprint_end_date = end_date
 

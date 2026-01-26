@@ -45,11 +45,19 @@ def get_sprint_dates(project: Project):
         raise ValueError("No active iteration found. Ensure your GitHub Project has an Iteration field with a current sprint.")
 
 
+def get_chart_title(project: Project) -> str:
+    """Generate the chart title including sprint name if available."""
+    title = project.name
+    if isinstance(project, ProjectV2) and project.sprint_name:
+        title = f"{project.name}, {project.sprint_name}"
+    return title
+
+
 def prepare_chart_data(stats: ProjectStats, sprint_start, sprint_end):
     color = colors()
     chart_end = config.utc_chart_end() or sprint_end
     data = BurndownChartData(
-        sprint_name=stats.project.name,
+        sprint_name=get_chart_title(stats.project),
         utc_chart_start=sprint_start,
         utc_chart_end=chart_end,
         utc_sprint_start=sprint_start,
